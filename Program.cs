@@ -85,6 +85,7 @@ internal class Program
                 case "-s":
                 case "--script":
                     script = true;
+                    args[i] = "";
                     break;
             }
         }
@@ -144,8 +145,8 @@ internal class Program
             }
             else
             {
-                Console.WriteLine("USER=" + username);
-                Console.WriteLine("PASS=" + password);
+                Console.WriteLine("USER:\n" + username);
+                Console.WriteLine("PASS:\n" + password);
             }
             args[0] = "";
             args[1] = "";
@@ -226,7 +227,7 @@ internal class Program
         if (!script)
             Console.WriteLine("Using secret: " + secret);
         else
-            Console.WriteLine("SECRET=" + secret);
+            Console.WriteLine("SECRET:\n" + secret);
 
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(secret);
@@ -252,15 +253,12 @@ internal class Program
         if (!script)
         {
             Console.WriteLine("\n\nYour JWT token is:\n" + tokenString);
-            if (expiration > 0)
-            {
-                DateTime? expirationTime = tokenDescriptor.Expires;
-                expirationTime = expirationTime?.ToLocalTime();
-                Console.WriteLine("It will expire at: " + expirationTime);
-            }
+            DateTime? expirationTime = tokenDescriptor.Expires;
+            expirationTime = expirationTime?.ToLocalTime();
+            Console.WriteLine("It will expire at: " + expirationTime);
         }
         else
-            Console.WriteLine("JWT=" + tokenString);
+            Console.WriteLine("JWT:\n" + tokenString);
         return 0;
     }
 }
