@@ -26,8 +26,8 @@ internal class Program
                 "\n" +
                 "Options:\n" +
                 "  -h, --help  Show this screen.\n" +
-                "  -e, --exp   Expiration time in minutes (default: 0)\n" +
-                "              0 = no expiration time\n" +
+                "  -e, --exp   Expiration time in minutes (default: 43200 = 30 days)\n" +
+                "              0 = default expiration time\n" +
                 "  -r, --role  Role to use in the JWT (default: admin)\n" +
                 "  -s, --script  Do not print any help or interactive text\n" +
                 "\n" +
@@ -44,10 +44,12 @@ internal class Program
             );
         }
 
+        const long DEFAULT_EXPIRATION = 43200;
+
         string username = "";
         string password = "";
         string secret = "";
-        int expiration = 0;
+        long expiration = DEFAULT_EXPIRATION;
         string role = "admin";
         bool script = false;
         string? line = null;
@@ -73,6 +75,7 @@ internal class Program
                 case "-e":
                 case "--exp":
                     expiration = int.Parse(args[i + 1]);
+                    if (expiration <= 0) expiration = DEFAULT_EXPIRATION;
                     args[i] = "";
                     args[i + 1] = "";
                     break;
@@ -145,8 +148,8 @@ internal class Program
             }
             else
             {
-                Console.WriteLine("USER:\n" + username);
-                Console.WriteLine("PASS:\n" + password);
+                Console.WriteLine("USER:\n\t" + username);
+                Console.WriteLine("PASS:\n\t" + password);
             }
             args[0] = "";
             args[1] = "";
@@ -166,14 +169,14 @@ internal class Program
                 line = Console.ReadLine();
                 if (line != null) role = line;
 
-                Console.Write("Expiration (default: 0): ");
+                Console.Write("Expiration (default: " + DEFAULT_EXPIRATION + "): ");
                 line = Console.ReadLine();
                 if (line != null)
                 {
-                    if (!int.TryParse(line, out expiration))
+                    if (!long.TryParse(line, out expiration))
                     {
                         Console.WriteLine("Error: Invalid expiration time");
-                        Console.WriteLine("Using default: 0");
+                        Console.WriteLine("Using default: " + DEFAULT_EXPIRATION);
                     }
                 }
             }
@@ -227,7 +230,7 @@ internal class Program
         if (!script)
             Console.WriteLine("Using secret: " + secret);
         else
-            Console.WriteLine("SECRET:\n" + secret);
+            Console.WriteLine("SECRET:\n\t" + secret);
 
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(secret);
@@ -239,26 +242,28 @@ internal class Program
                 new Claim(ClaimTypes.Name, username),
                 new Claim(ClaimTypes.Role, "admin")
             }),
+            Expires = DateTime.UtcNow.AddMinutes(expiration),
             SigningCredentials = new SigningCredentials(
                 new SymmetricSecurityKey(key),
                 SecurityAlgorithms.HmacSha256Signature)
         };
 
-        if (expiration > 0)
-            tokenDescriptor.Expires = DateTime.UtcNow.AddMinutes(expiration);
-
         var token = tokenHandler.CreateToken(tokenDescriptor);
         var tokenString = tokenHandler.WriteToken(token);
+
+        DateTime? expirationTime = tokenDescriptor.Expires;
+        expirationTime = expirationTime?.ToLocalTime();
 
         if (!script)
         {
             Console.WriteLine("\n\nYour JWT token is:\n" + tokenString);
-            DateTime? expirationTime = tokenDescriptor.Expires;
-            expirationTime = expirationTime?.ToLocalTime();
             Console.WriteLine("It will expire at: " + expirationTime);
         }
         else
-            Console.WriteLine("JWT:\n" + tokenString);
+        {
+            Console.WriteLine("EXPIRATION:\n\t" + expirationTime);
+            Console.WriteLine("JWT:\n\t" + tokenString);
+        }
         return 0;
     }
 }
